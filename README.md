@@ -73,7 +73,7 @@ Code:
     </code>
 
 Syntax Higlighted code:
-Be sure you have a blank line BEFORE ''<code>'' tag
+Be sure you have a blank line BEFORE code tag
     <code lang>
     lang attribute can be php, c, java... etc... See Geshi support
     some code here...
