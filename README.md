@@ -6,7 +6,7 @@ WikiPDF is a PHP script for command line. If you wonder why I used PHP, read bel
 
 You need:
 
-    * PHP 5.2+
+    * PHP 5.2+ (CLI only is needed, check php-cli package)
     * html2ps 
     * ps2pdf
     * convert (Imagemagik package)
@@ -40,6 +40,38 @@ This will create a little pdf with this "hello" basic test.
 And now:
     $ wikidoc test.wiki | gz > pdf_compressed.pdf.gz
 
+
+# Wiki Syntax
+I use a pseudo Doku syntax. For now I only parse:
+
+Headings:
+     = H1 = 
+     == H2 ==
+    ...
+    ===== H5 =====
+Code:
+    <code>
+    some code here
+    </code>
+
+Syntax Higlighted code:
+    <code lang>
+    lang attribute can be php, c, java... etc... See Geshi support
+    some code here...
+    </code>
+
+Paragraphs are made by leaving a blank line between 2 text blocks.
+
+Image:
+    {{path/to/image}}
+    {{path/to/image?50%}}
+    {{path/to/image?240x45}}
+
+In paragraphs, you can use:
+    **to bold text**
+    //emphasis text//
+    ''verbatim code''
+    
 
 # Why PHP ?
 
