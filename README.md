@@ -2,6 +2,10 @@
 
 WikiPDF is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to generate a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
 
+WikiPDF is not made to generate web wiki page to PDF. It's a tool to create documents (article, books) as LaTeX or DocBook can do, but with an easy syntax. For now, WikiPDF is in progress but it works properly.
+
+Soon, you will be able to include files, set document type, etc... 
+
 # Requirement
 
 You need:
@@ -81,8 +85,10 @@ Be sure you have a blank line BEFORE code tag
 
 Paragraphs are made by leaving a blank line between 2 text blocks.
 
-Image:
+Add Image:
     {{path/to/image}}
+
+Add Image with resize:
     {{path/to/image?50%}}
     {{path/to/image?240x45}}
 
@@ -94,7 +100,7 @@ In paragraphs, you can use:
 
 
 # Options
-You may add option at top of your file. Each option is on a new line, begining with ":". Take care to not set blank line between options !
+You may add options at top of your file. Each option is on a new line, begining with ":". Take care to not set blank line between options !
 
 Example:
     :title Title of my document
@@ -108,7 +114,7 @@ Use these:
     Example:
     :footer H//N => this set Heading to the left, page number to the right, nothing at center.
     :header left/center/right => same as header
-    :alternate: If 0 => page are not alternated (reverse left and right header and footer on odd and even pages)
+    :alternate: 0 => page are not alternated (no reverse left and right header and footer on odd and even pages)
     :toctitle: Set table of contents title other than "Table of contents"
     :paper-type: Format, default is A4
     :orientation: portrait or landscape
