@@ -73,6 +73,27 @@ In paragraphs, you can use:
     ''verbatim code''
     __underline text__
 
+
+# Options
+You may add option at top of your file. Each option is on a new line, begining with ":". Take care to not set blank line between options !
+
+Example:
+    :title Title of my document
+    :author Patrice Ferlet <metal3d@gmail.com>
+
+Use these:
+    :title set title 
+    :footer right/center/left => replace right, center and left by: 
+                                                D to have date, T to have title, A to have author
+                                                H to have current Headinf, N to have page number
+    Example:
+    :footer H//N => this set Heading to the left, page number to the right, nothing at center.
+    :header left/center/right => same as header
+    :alternate: If 0 => page are not alternated (reverse left and right header and footer on odd and even pages)
+    :toctitle: Set table of contents title other than "Table of contents"
+    :paper-type: Format, default is A4
+    :orientation: portrait or landscape
+
 # Why PHP ?
 
 I wonder for a while which language to use to develop this kind of tool. I love Python, Perl, C... but PHP is probably the best choice to make for this job. 
