@@ -2,6 +2,18 @@
 
 WikiPDF is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to generate a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
 
+# Requirement
+
+You need:
+
+    * PHP 5.2+
+    * html2ps 
+    * ps2pdf
+    * convert (Imagemagik package)
+    * iconv
+    * php-geshi package installed in include_dir (see php.ini)
+    * php-tidy module
+
 # How to use it ?
 
 ## Installation
