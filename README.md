@@ -33,9 +33,27 @@ This way, "a_wiki_file.wiki" will be parsed and "pdf_file.pdf" will be yield.
 
 To use STDIN, just omit "input file":
 
-    $ echo "=== Title ===\nHello you !" | wikipdf -o test.pdf
+    $ echo -e ":title Test\n=== Title ===\nHello you !\n" | wikipdf -o test.pdf
 
 This will create a little pdf with this "hello" basic test.
+
+Or nicer, use cat to generate on the fly a pdf:
+    $ cat | wikipdf -o test.pdf 
+    :title Test from command line
+    
+    = Usage =
+    It's a simple usage of ''cat'' pipe to ''wikipdf'' command.
+    Let's try some syntax Highlight:
+    
+    <code bash>
+    #what we typed:
+    cat | wikidoc
+    </code>
+    
+    You can now press CTRL+D to generate what you've typed in shell :)
+
+Let's take a look on test.pdf generated file.
+
 
 And now:
     $ wikidoc test.wiki | gz > pdf_compressed.pdf.gz
