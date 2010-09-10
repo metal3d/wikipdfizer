@@ -71,7 +71,7 @@ In paragraphs, you can use:
     **to bold text**
     //emphasis text//
     ''verbatim code''
-    
+    __underline text__
 
 # Why PHP ?
 
