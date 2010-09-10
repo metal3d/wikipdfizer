@@ -1,9 +1,9 @@
-=== WikiPDF ===
+# WikiPDF 
 
 WikiPDF is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to generate a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
 
 
-=== Why PHP ? ===
+# Why PHP ?
 
 I wonder for a while which language to use to develop this kind of tool. I love Python, Perl, C... but PHP is probably the best choice to make for this job. 
 
