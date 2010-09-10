@@ -1,0 +1,522 @@
+#!/bin/env php
+<?php
+/**
+    wikipdf - Pdf generator from Simple Wiki syntax using Geshi, Tidy, html2ps, ps2pdf and PHP
+    @author: Patrice Ferlet <metal3d@gmail.com>
+    Copyright (C) 2010-2011  Patrice Ferlet
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    (at your option) any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
+//Requirements tests
+$err = FALSE;
+if(!class_exists('Tidy')) {
+    echo "You need php-tidy module, please check your distribution packages.\n";
+    $err = TRUE;
+}
+
+@include_once "geshi.php";
+if(!class_exists('Geshi')) {
+    echo "Geshi must be installed in you php-extensions directory (see: include_path instruction in php.ini). It's possible that your distribution can install properly Geshi like this:
+-- Ubuntu or Debian --
+    sudo aptitude install php-geshi
+    sudo aptitude install php5-geshi
+-- Fedora, CentOS, RedHat... --
+    su -lc 'yum install php-geshi'
+";
+    $err = TRUE;
+}
+$ret = 0;
+passthru('which html2ps >/dev/null 2>&1', $ret);
+if($ret != 0) {
+    echo <<<ERR
+You must install html2ps command.
+
+ERR;
+    $err = TRUE;
+}
+
+$ret = 0;
+passthru('which ps2pdf >/dev/null 2>&1', $ret);
+if($ret != 0) {
+    echo <<<ERR
+You must install ps2pdf command.
+
+ERR;
+    $err = TRUE;
+}
+
+//requirements failed
+if($err) {
+    exit (1);
+}
+$currentDir = dirname(__FILE__); //we be probably modified in next lines...
+
+/******** Functions ****************/
+
+/**
+* Print help...
+*/
+function printHelp($bin){
+    $bin = basename($bin);
+    echo <<<HELP
+Usage examples:
+    ${bin} [wikifile] > file.pdf
+    ${bin} [wikifile] -o file.pdf
+    ${bin} -o file.pdf < [wikifile]
+
+Options:
+    -o              Output filename (if not given, stdout will be written)
+    -h, --help      Print this help
+
+if no [wikifile] given, ${bin} will read stdin.
+
+HELP;
+}
+
+
+/**
+* This function replace span styled with css to font tag
+* This is not XHTML, but html2ps needs it...
+*/
+function styleToFont($matches, &$code) {
+    foreach ($matches[0] as $c=>$found) { 
+        $styles = str_replace(' ','',$matches[1][$c]);
+        $styles = explode(';',$styles);
+        $r = $matches[2][$c]; //code in span
+        foreach ($styles as $s) {
+            $st = explode(':', $s); //fetch styles
+            if ($st[0] == 'color') {
+                $r = '<font color="'.$st[1].'">'.$r.'</font>';
+            }
+            if ($st[0] == 'font-style') {
+                if($st[1] == 'italic') {
+                    $r = '<i>'.$r.'</i>';   
+                }
+            }
+            if ($st[0] == 'font-weight') {
+                if(in_array($st[1], array('bold','bolder'))) {
+                    $r = '<b>'.$r.'</b>';   
+                }
+            }
+            if ($st[0] == 'font-face') {
+                $r = '<font face="'.$st[1].'">'.$r.'</font>';   
+            }
+        }
+        //now replace the span with generated font codes
+        $code = str_replace($found, $r, $code);
+    }
+}
+
+/**
+* Format blocs from paragraph.
+*/
+$images = array();
+function checkWikiSyntax(&$para) {
+    global $images;
+    global $currentDir;
+
+    $para = htmlentities($para);
+
+    $para = preg_replace('/\*\*(.*?)\*\*/','<b>\\1</b>', $para);
+    $para = preg_replace('/\/\/(.*?)\/\//','<i>\\1</i>', $para);
+    $para = preg_replace('/__(.*?)__/', '<u>\\1</u>', $para);
+    //images
+    if(preg_match_all('/\{\{(.+?)(\?.+)?\}\}/', $para, $matches)) {
+        foreach ($matches[0] as $c=>$found) {
+            $image = $matches[1][$c];
+            if(substr($matches[1][$c],0,1)!='/') {
+                //relative path, check realpath instead
+                $image = realpath($currentDir.'/'.$matches[1][$c]);
+            }
+            $size = getimagesize($image);
+
+            if(isset($matches[2][$c])) {
+                $param = str_replace('?','',trim($matches[2][$c])); //we get image parameter, for example 60x40 or 32%
+                if(preg_match('/\%/', $param)) {
+                    $param = str_replace('%','',$param);
+                    $size[0] *= ($param*0.01);
+                    $size[1] *= ($param*0.01);
+                }
+                if(preg_match('/\d+x\d+/', $param)) {
+                    $size = explode('x', trim($param));
+                }
+            }
+
+            $size = implode('x',array($size[0], $size[1]));
+            $oimage = "/tmp/tmp-".uniqid().basename($image);
+            `convert -geometry $size $image $oimage`;
+            $para = str_replace($matches[0][$c], '<img src="'.$oimage.'" >', $para);
+            $images[] = $oimage; //images, after script has finished, have to be removed
+        }
+    }
+    $para = preg_replace('/\'\'(.+?)\'\'/','<code>\\1</code>', $para);
+    
+}
+
+/**
+* This parse arguments given from command line
+* code from: http://www.php.net/manual/fr/function.getopt.php#83414
+* @author: mbirth at webwriters dot de
+*/
+function parseParameters($noopt = array()) {
+    global $argv;
+    $result = array();
+    $params = $argv;
+    // could use getopt() here (since PHP 5.3.0), but it doesn't work relyingly
+    reset($params);
+    while (list($tmp, $p) = each($params)) {
+        if ($p{0} == '-') {
+            $pname = substr($p, 1);
+            $value = true;
+            if ($pname{0} == '-') {
+                // long-opt (--<param>)
+                $pname = substr($pname, 1);
+                if (strpos($p, '=') !== false) {
+                    // value specified inline (--<param>=<value>)
+                    list($pname, $value) = explode('=', substr($p, 2), 2);
+                }
+            }
+            // check if next parameter is a descriptor or a value
+            $nextparm = current($params);
+            if (!in_array($pname, $noopt) && $value === true && $nextparm !== false && $nextparm{0} != '-') list($tmp, $value) = each($params);
+            $result[$pname] = $value;
+        } else {
+            // param doesn't belong to any option
+            $result[] = $p;
+        }
+    }
+    return $result;
+}
+
+/************ Arguments command line **********************/
+
+$options = parseParameters(array('h')); 
+if(isset($options['h']) || isset($options['help'])) {
+    printHelp(basename($argv[0])); exit(0); //strop after help;
+}
+
+$outfile = FALSE;
+if(isset($options['o'])) {
+    $outfile = $options['o'];
+}
+
+if(isset($options[1])) { //numbered options index have no options tag, so it's probably input file...
+    if(file_exists($options[1])) {
+        $file = (string)file_get_contents($options[1]);
+        $currentDir = realpath(dirname($options[1]));
+    }
+    else{
+        echo "${options[1]}: file not found\n"; exit(1);
+    }
+} elseif (!isset($options[1])) {
+    //read from stdin
+    $stdin = fopen("php://stdin",'r');
+    while(!feof($stdin)) {
+        $file.=fread($stdin, 1024);
+    }
+    fclose($stdin);
+    unset($stdin);
+}
+else {
+    //something goes wrong
+    echo "Error parsing command line, please check arguments";
+    printHelp(basename($argv[0]));
+    exit (1);
+}
+
+
+
+/***********************************************************/
+
+
+//fetch title, author...
+$lines = explode("\n",$file);
+while (trim($lines[0])=="") {
+    array_shift($lines);
+}
+
+$file="";
+
+
+$html2psoption = array(
+    'paper' => array(
+        'type' => 'A4'
+    ),
+    'toc' => array(),
+    'header' => array(),
+    'footer' => array(),
+    'option' => array() 
+    
+);
+
+//prepare meta, parse the very first lines of wiki file and check
+//:value content...
+//example
+//:title The Title of my document
+$meta = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'."\n";
+while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
+    array_shift($lines);
+    $tag = strtolower($matches[1]);
+    $content = &$matches[2];
+    if($tag == 'title') {
+        $meta.='<title>'.$content.'</title>'."\n";
+    }
+
+    //option for html2ps
+    elseif($tag=="paper-type") {
+        $html2psoption['paper']['type'] = $content; //example :papersize A4
+    }
+    elseif($tag=="orientation") {
+        $html2psoption['option'][$content] = 1; //example :papersize A4
+    }
+
+    elseif($tag=='alternate') {
+        if(intval($content) == '0') {
+            $html2psoption['header']['alternate'] = 0;
+            $html2psoption['footer']['alternate'] = 0;
+        }
+    }
+
+    elseif($tag=='header'){
+        $h = explode('/',$content);
+        if(strlen($h[0])) {
+            $html2psoption['header']['left'] = '"$'.$h[0].'"';
+        }
+        if(strlen($h[1])) {
+            $html2psoption['header']['center'] = '"$'.$h[1].'"';
+        }
+        if(strlen($h[2])) {
+            $html2psoption['header']['right'] = '"$'.$h[2].'"';
+        }
+    }
+    elseif($tag=='footer'){
+        $h = explode('/',$content);
+        if(strlen($h[0])) {
+            $html2psoption['footer']['left'] = '"$'.$h[0].'"';
+        }
+        if(strlen($h[1])) {
+            $html2psoption['footer']['center'] = '"$'.$h[1].'"';
+        }
+        if(strlen($h[2])) {
+            $html2psoption['footer']['right'] = '"$'.$h[2].'"';
+        }
+    }
+
+    elseif($tag=='toctitle'){
+        $html2psoption['toc']['heading'] = '<h1>'.utf8_decode($content).'</h1>';
+    }
+
+    else {
+        if($tag=='author'){
+            if(preg_match('/(.*?) <(.*?)>/', $content, $m)) {
+                $meta .= '<meta http-equiv="Author" content="'.$m[1].'" >'."\n";
+                $meta .= '<meta http-equiv="Publisher-Email" content="'.$m[2].'" >'."\n";
+                
+            }
+            else {
+                $meta .= '<meta http-equiv="'.ucfirst($tag).'" content="'.$content.'" >'."\n";
+            }
+        } else {
+            $meta .= '<meta http-equiv="'.ucfirst($tag).'" content="'.$content.'" >'."\n";
+        }
+    }
+}
+
+//force paragraphs... and take care of "tagged" blocs
+for($i=0; $i<count($lines); $i++) {
+    $line = trim($lines[$i]);
+    if(preg_match('/[^(<code)]/',substr($line,0,1))) {
+        $para = $line."\n";
+        while (trim($line) != "") {
+            $i++;
+            $line = $lines[$i];
+            $para.=$line."\n";
+        }
+        if(trim($para) == "---") $para = "\n<!--NewPage-->\n";
+        else checkWikiSyntax($para);
+        $file.="<p>\n$para\n</p>\n";
+    }
+    elseif(preg_match('/</', $line)) {
+        //opening a special bloc
+        $file .= $line."\n";
+        while (!preg_match('/<\//', $line) && $i < count($lines)) {
+            $i++; $line = $lines[$i]; //no trim here !!!
+            $file .= $line."\n";
+        }
+    }
+}
+
+unset($lines);
+unset($matches);
+
+//headings
+preg_match_all('/(=+)(.*?)\1/', $file, $matches);
+foreach ($matches[0] as $c=>$found) {
+    $h = strlen($matches[1][$c]);
+    $file = str_replace(
+            $found, 
+            sprintf("<h%d>%s</h%d>", $h, $matches[2][$c], $h), 
+            $file);
+}
+unset($matches);
+
+//code
+preg_match_all('/\n<code(\s+.+?)*>(.*?)\n<\/code>/s', $file, $matches);
+foreach ($matches[0] as $c=>$found) {
+    $lang = "html";
+    if (strlen(trim($matches[1][$c]))>0) {
+        $lang = $matches[1][$c];
+    }
+    $code = $matches[2][$c];
+
+    $g = new Geshi($code, $lang);
+    $g->enable_keyword_links(false);
+    $code = $g->parse_code();
+
+    preg_match_all('/<span .*?style="(.*?)">(.*?)<\/span>/s',$code, $_matches);
+    styleToFont($_matches, $code);
+    
+    $file = str_replace(
+        $found,
+        sprintf("%s", $code),
+        $file
+    );
+}
+unset($matches);
+
+//prepare html... as we can
+$file = <<<HTML
+<html>
+<head>
+${meta}
+</head>
+<body>
+${file}
+</body>
+</html>
+HTML;
+
+
+//bash process, this create temp file
+$temp = `mktemp --suffix=.html2psrc`;
+$temp = trim($temp);
+
+//now process rc file
+$rc = "";
+foreach(array('header','footer','toc','paper','option') as $part) {
+    $tpl = "\t%s {\n%s\t}\n";
+    $opt = "";
+    foreach ($html2psoption[$part] as $key=>$val) {
+        $opt.=sprintf("\t\t%s: %s\n", $key, $val);
+    }
+    $rc .= sprintf($tpl, $part, $opt)."\n";
+}
+//rc file is written with $rc content
+$conf = <<<CONF
+@html2ps { 
+\tseq-number: 1;
+\tpackage {
+\t\tImageMagick: 1
+\t}
+${rc}
+}
+CONF;
+file_put_contents($temp, $conf);
+
+//tidy generated HTML 
+$options = array(
+    'output-html' => true,
+    'output-encoding' => 'latin1',
+    'input-encoding' => 'latin1',
+    'char-encoding' => 'latin1'
+);
+$tidy = new Tidy();
+$tidy->parseString($file,$options);
+$tidy->cleanRepair();
+
+$tidy = (string)$tidy;
+
+
+//Pipes to 3 tools: iconv, html2ps, ps2pdf
+$ret = FALSE;
+$ret2 = FALSE;
+$iconv = proc_open('iconv -t "ISO885915"',array(
+    '0' => array("pipe", "r"),
+    '1' => array("pipe", "w"),
+), $pipes, "/tmp");
+
+if(is_resource($iconv)) {
+    fwrite($pipes[0], $tidy); //sending html content to iconv to standard convertion
+    fclose($pipes[0]);
+
+    $ret = stream_get_contents($pipes[1]);
+    fclose($pipes[1]);
+    proc_close($iconv);
+
+    //ok, convertion is done... 
+}
+unset($iconv);
+
+if($ret !== FALSE) {
+    //now, send it to html2ps
+    $cb = basename($temp);
+    $html2ps = proc_open("HTML2PSPATH=/tmp html2ps -f '$cb' -C hb -U -t ", array(
+        '0' => array('pipe', 'r'),
+        '1' => array('pipe', 'w')
+    ), $pipes, '/tmp');
+    if(is_resource($html2ps)) {
+        fwrite($pipes[0], $ret); //send iconv return to html2ps
+        fclose($pipes[0]);
+        $ret2 = stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        proc_close($html2ps);
+    }
+    unset ($html2ps);
+}
+unset($ret);
+
+if($ret2 !== FALSE) {
+    //and now, to pdf...
+    $option='';
+    if(isset($html2psoption['paper']['type'])) {
+        $option .= "-sPAPERSIZE=".strtolower($html2psoption['paper']['type']); //this is because US Letter is default used...
+    }
+    $ps2pdf = proc_open("ps2pdf -dPDFSETTINGS=/prepress $option - -", array(
+        '0' => array('pipe', 'r'),
+        '1' => array('pipe', 'w'),
+    ), $pipes, '/tmp');
+
+    if(is_resource($ps2pdf)) {
+        fwrite($pipes[0], $ret2);
+        fclose($pipes[0]);
+        $pdf=stream_get_contents($pipes[1]);
+        fclose($pipes[1]);
+        proc_close($ps2pdf); 
+    }
+}
+
+//generate output
+if($outfile) {
+    file_put_contents($outfile, $pdf);
+}
+else {
+    print $pdf;
+}
+
+//cleanup generated temporary files
+@unlink($temp);
+foreach ($images as $img) {
+    @unlink($img);
+}
