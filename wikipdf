@@ -203,6 +203,7 @@ function parseParameters($noopt = array()) {
 /************ Arguments command line **********************/
 
 $options = parseParameters(array('h')); 
+$file = "";
 if(isset($options['h']) || isset($options['help'])) {
     printHelp(basename($argv[0])); exit(0); //strop after help;
 }
