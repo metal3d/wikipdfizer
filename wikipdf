@@ -166,6 +166,24 @@ function checkWikiSyntax(&$para) {
 }
 
 /**
+* Import wandering files into current document
+*/
+function doImport (&$content) {
+    global $currentDir;
+    preg_match_all('/\n=>(.*?)\n/', $content, $matches);
+    foreach($matches[0] as $c=>$found) {
+        $name = $matches[1][$c];
+        $f = realpath($currentDir.'/'.$name);
+        $ddir = dirname(realpath($currentDir.'/'.$name));
+        $ct = file_get_contents($f);
+
+        //replace images paths if
+        $ct = preg_replace('/\{\{([^(http)|\/].*?)\}\}/','{{'.$ddir.'/\\1}}', $ct);
+        $content = str_replace($found,"\n".$ct."\n",$content);
+    }
+}
+
+/**
 * This parse arguments given from command line
 * code from: http://www.php.net/manual/fr/function.getopt.php#83414
 * @author: mbirth at webwriters dot de
@@ -241,6 +259,8 @@ else {
 
 /***********************************************************/
 
+//prepare files to import into document
+doImport($file);
 
 //fetch title, author...
 $lines = explode("\n",$file);
@@ -266,7 +286,7 @@ $html2psoption = array(
 //:value content...
 //example
 //:title The Title of my document
-$meta = '<meta http-equiv="Content-Type" content="text/html; charset=utf-8">'."\n";
+$meta = '<meta http-equiv="Content-Type" content="text/html; charset=iso-8859-15">'."\n";
 while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
     array_shift($lines);
     $tag = strtolower($matches[1]);
