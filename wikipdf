@@ -278,6 +278,7 @@ $html2psoption = array(
     'paper' => array(
         'type' => 'A4'
     ),
+    'body' => array(),
     'toc' => array(),
     'header' => array(),
     'footer' => array(),
@@ -298,7 +299,7 @@ while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
         $meta.='<title>'.$content.'</title>'."\n";
     }
 
-    //option for html2ps
+    //paper options
     elseif($tag=="paper-type") {
         $html2psoption['paper']['type'] = $content; //example :papersize A4
     }
@@ -306,6 +307,21 @@ while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
         $html2psoption['option'][$content] = 1; //example :papersize A4
     }
 
+
+    //body options
+    elseif($tag=='font-size') {
+        $html2psoption['body']['font-size'] = $content;
+    }
+    
+    elseif($tag=='text-align') {
+        $html2psoption['body']['text-align'] = $content;
+    }
+    
+    elseif($tag=='font') {
+        $html2psoption['body']['font-family'] = $content;
+    }
+    
+    //page alternate option
     elseif($tag=='alternate') {
         if(intval($content) == '0') {
             $html2psoption['header']['alternate'] = 0;
@@ -313,6 +329,7 @@ while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
         }
     }
 
+    //footer and header
     elseif($tag=='header'){
         $h = explode('/',$content);
         if(strlen($h[0])) {
@@ -338,10 +355,13 @@ while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
         }
     }
 
+    //Table of content
     elseif($tag=='toctitle'){
         $html2psoption['toc']['heading'] = '<h1>'.utf8_decode($content).'</h1>';
     }
 
+
+    //author
     else {
         if($tag=='author'){
             if(preg_match('/(.*?) <(.*?)>/', $content, $m)) {
@@ -368,8 +388,9 @@ for($i=0; $i<count($lines); $i++) {
             $line = $lines[$i];
             $para.=$line."\n";
         }
-        if(trim($para) == "---") $para = "\n<!--NewPage-->\n";
-        else checkWikiSyntax($para);
+        
+        checkWikiSyntax($para);
+        $file = preg_replace('/\n\-\-\-\n/',"\n<!--NewPage-->\n", $file);
         $file.="<p>\n$para\n</p>\n";
     }
     elseif(preg_match('/</', $line)) {
@@ -447,6 +468,15 @@ foreach(array('header','footer','toc','paper','option') as $part) {
     }
     $rc .= sprintf($tpl, $part, $opt)."\n";
 }
+
+//body options
+$bo='';
+$opt = "";
+foreach ($html2psoption['body'] as $key=>$val) {
+    $opt.=sprintf("\t\t%s: %s\n", $key, $val);
+}
+$bo .= sprintf("BODY {\n%s\n}", $opt)."\n";
+
 //rc file is written with $rc content
 $conf = <<<CONF
 @html2ps { 
@@ -456,6 +486,9 @@ $conf = <<<CONF
 \t}
 ${rc}
 }
+
+${bo}
+
 CONF;
 file_put_contents($temp, $conf);
 
