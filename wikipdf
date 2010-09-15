@@ -390,7 +390,6 @@ for($i=0; $i<count($lines); $i++) {
         }
         
         checkWikiSyntax($para);
-        $file = preg_replace('/\n\-\-\-\n/',"\n<!--NewPage-->\n", $file);
         $file.="<p>\n$para\n</p>\n";
     }
     elseif(preg_match('/</', $line)) {
@@ -405,6 +404,9 @@ for($i=0; $i<count($lines); $i++) {
 
 unset($lines);
 unset($matches);
+
+//set new page
+$file = preg_replace('/\n\-\-\-\n/',"\n<!--NewPage-->\n", $file);
 
 //headings
 preg_match_all('/(=+)(.*?)\1/', $file, $matches);
