@@ -262,6 +262,9 @@ else {
 //prepare files to import into document
 doImport($file);
 
+//be sure to not do error on lists, table etc...
+$file = preg_replace('/\n{1}</',"\n\n<",$file);
+
 //fetch title, author...
 $lines = explode("\n",$file);
 while (trim($lines[0])=="") {
