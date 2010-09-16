@@ -64,13 +64,14 @@ And now:
 
 
 # Wiki Syntax
-I use a pseudo Doku syntax. For now I only parse:
+You can use a pseudo Doku syntax. For now wikipdf recognizes this:
 
 Headings:
      = H1 = 
      == H2 ==
     ...
     ===== H5 =====
+    
 Code:
     <code>
     some code here
@@ -99,6 +100,12 @@ In paragraphs, you can use:
     __underline text__
 
 
+Import file to split your document, you must set it in on line per document:
+    =>filename1
+    =>filename2
+    =>...
+
+
 # Options
 You may add options at top of your file. Each option is on a new line, begining with ":". Take care to not set blank line between options !
 
@@ -115,9 +122,12 @@ Use these:
     :footer H//N => this set Heading to the left, page number to the right, nothing at center.
     :header left/center/right => same as header
     :alternate: 0 => page are not alternated (no reverse left and right header and footer on odd and even pages)
-    :toctitle: Set table of contents title other than "Table of contents"
-    :paper-type: Format, default is A4
-    :orientation: portrait or landscape
+    :toctitle Set table of contents title other than "Table of contents"
+    :paper-type Format, default is A4
+    :orientation portrait or landscape
+    :font FontName => for example Helvetica
+    :font-size Xpt => where X is size in points (12pt)
+    :text-align alignement => justify, left, right
 
 # Why PHP ?
 
