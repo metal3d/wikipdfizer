@@ -1,10 +1,12 @@
 # WikiPDF 
 
-WikiPDF is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to generate a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
+WikiPDF is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to yield a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
 
 WikiPDF is not made to generate web wiki page to PDF. It's a tool to create documents (article, books) as LaTeX or DocBook can do, but with an easy syntax. For now, WikiPDF is in progress but it works properly.
 
-Soon, you will be able to include files, set document type, etc... 
+Soon, you will be able to set document type, etc...
+
+If you have any solution to create indexes reference, please contact me.
 
 # Requirement
 
@@ -133,6 +135,6 @@ Use these:
 
 I wonder for a while which language to use to develop this kind of tool. I love Python, Perl, C... but PHP is probably the best choice to make for this job. 
 
-I need to create HTML file, call bash commands and to create colored syntax code for many language support. There is a Library named Geshi that color scripts with a lot of nice options.
+I need to create HTML file, call bash commands and to create colored syntax code for many language support. There is a Library named Geshi that can create highlighted color code source with a lot of nice options. It's a better choice than "highlighter" command line tool that haven't options I needed.
 
-PHP has a good PCRE support (regular expression syntax from Perl). So, That's why I choosed PHP.
+PHP has a good PCRE support (regular expression syntax from Perl). That's why I choosed PHP.
