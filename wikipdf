@@ -52,9 +52,8 @@ if($err) {
     exit (1);
 }
 
-
 //else, we can begin the job
-$currentDir = dirname(__FILE__); //we be probably modified in next lines...
+$currentDir = dirname(__FILE__); //will be probably modified in next lines...
 
 /** Set memory limit to 128Mo **/
 ini_set(“memory_limit”,”128M”);
