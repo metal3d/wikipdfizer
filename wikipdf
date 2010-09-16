@@ -26,17 +26,7 @@ if(!class_exists('Tidy')) {
     $err = TRUE;
 }
 
-@include_once "geshi.php";
-if(!class_exists('Geshi')) {
-    echo "Geshi must be installed in you php-extensions directory (see: include_path instruction in php.ini). It's possible that your distribution can install properly Geshi like this:
--- Ubuntu or Debian --
-    sudo aptitude install php-geshi
-    sudo aptitude install php5-geshi
--- Fedora, CentOS, RedHat... --
-    su -lc 'yum install php-geshi'
-";
-    $err = TRUE;
-}
+
 $ret = 0;
 passthru('which html2ps >/dev/null 2>&1', $ret);
 if($ret != 0) {
@@ -61,7 +51,15 @@ ERR;
 if($err) {
     exit (1);
 }
+
+
+//else, we can begin the job
 $currentDir = dirname(__FILE__); //we be probably modified in next lines...
+
+/** Set memory limit to 128Mo **/
+ini_set(“memory_limit”,”128M”);
+
+
 
 /******** Functions ****************/
 
@@ -77,8 +75,9 @@ Usage examples:
     ${bin} -o file.pdf < [wikifile]
 
 Options:
-    -o              Output filename (if not given, stdout will be written)
-    -h, --help      Print this help
+    -o [file.pdf]               Output filename (if not given, stdout will be written)
+    -h, --help                  Print this help
+    -g, --geshi [path]          Set directory where to find Geshi class if not in default php include path       
 
 if no [wikifile] given, ${bin} will read stdin.
 
@@ -220,16 +219,53 @@ function parseParameters($noopt = array()) {
 
 /************ Arguments command line **********************/
 
-$options = parseParameters(array('h')); 
+$options = parseParameters(array('h'));
+
+//test geshi
+if (isset($options['g']) || isset ($options['geshi'])) {
+    $p = isset($options['g']) ? $options['g'] : $options['geshi'];
+    if(!is_dir($p)) {
+        echo "ERROR: $p is not a directory";
+        exit(1);
+    }
+    
+    set_include_path(get_include_path() . PATH_SEPARATOR . $p);
+    
+    @include_once "geshi.php";
+    if(!class_exists('Geshi')) {
+        $bin = basename($argv[0]);
+        echo "
+Geshi must be installed in you php-extensions directory (see: include_path instruction in php.ini). It's possible that your distribution can install properly Geshi like this:
+-- Ubuntu or Debian --
+    sudo aptitude install php-geshi
+    sudo aptitude install php5-geshi
+-- Fedora, CentOS, RedHat... --
+    su -lc 'yum install php-geshi'
+    
+    
+If your distribution has no package for Geshi, download and extract Geshi in a directory. Then you can use -g or --geshi option to set directory path containing 'geshi.php'. Example:
+$bin input.wiki -o outuput.pdf -g /path/to/geshi/class
+
+";
+        exit(1);
+    }
+}
+
+//force inclusion now
+@include_once "geshi.php";
+
+//get options...
 $file = "";
 if(isset($options['h']) || isset($options['help'])) {
     printHelp(basename($argv[0])); exit(0); //strop after help;
 }
 
+//check output
 $outfile = FALSE;
 if(isset($options['o'])) {
     $outfile = $options['o'];
 }
+
 
 if(isset($options[1])) { //numbered options index have no options tag, so it's probably input file...
     if(file_exists($options[1])) {
@@ -239,7 +275,9 @@ if(isset($options[1])) { //numbered options index have no options tag, so it's p
     else{
         echo "${options[1]}: file not found\n"; exit(1);
     }
-} elseif (!isset($options[1])) {
+}
+//no input filename, read stdin
+elseif (!isset($options[1])) {
     //read from stdin
     $stdin = fopen("php://stdin",'r');
     while(!feof($stdin)) {
@@ -248,16 +286,15 @@ if(isset($options[1])) { //numbered options index have no options tag, so it's p
     fclose($stdin);
     unset($stdin);
 }
+//something goes wrong
 else {
-    //something goes wrong
     echo "Error parsing command line, please check arguments";
     printHelp(basename($argv[0]));
     exit (1);
 }
 
 
-
-/***********************************************************/
+/*********************** Do the job ***************************/
 
 //prepare files to import into document
 doImport($file);
@@ -272,8 +309,6 @@ while (trim($lines[0])=="") {
 }
 
 $file="";
-
-
 $html2psoption = array(
     'paper' => array(
         'type' => 'A4'
