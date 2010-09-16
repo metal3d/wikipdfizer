@@ -242,7 +242,10 @@ Geshi must be installed in you php-extensions directory (see: include_path instr
     su -lc 'yum install php-geshi'
     
     
-If your distribution has no package for Geshi, download and extract Geshi in a directory. Then you can use -g or --geshi option to set directory path containing 'geshi.php'. Example:
+If your distribution has no package for Geshi, download and extract Geshi in a directory. 
+See: http://sourceforge.net/projects/geshi/files/
+
+Then you can use -g or --geshi option to set directory path containing 'geshi.php'. Example:
 $bin input.wiki -o outuput.pdf -g /path/to/geshi/class
 
 ";
