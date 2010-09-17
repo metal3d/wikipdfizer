@@ -1,8 +1,8 @@
-# WikiPDF 
+# wikiPDFizer 
 
-WikiPDF is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to yield a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
+wikiPDFizer is a PHP script for command line. If you wonder why I used PHP, read below. The main goal is to yield a PDF file with syntax highlighted code, images, table of contents, etc... from a Simple Wiki Syntax.
 
-WikiPDF is not made to generate web wiki page to PDF. It's a tool to create documents (article, books) as LaTeX or DocBook can do, but with an easy syntax. For now, WikiPDF is in progress but it works properly.
+wikiPDFizer is not made to generate web wiki page to PDF. It's a tool to create documents (article, books) as LaTeX or DocBook can do, but with an easy syntax. For now, wikiPDFizer is in progress but it works properly.
 
 Soon, you will be able to set document type, etc...
 
@@ -23,28 +23,28 @@ You need:
 # How to use it ?
 
 ## Installation
-Get wikipdf script from this repository, or wait I make a release. Place this script in your PATH if you want the script to be easily invoked (for example, place it into /usr/local/bin directory)
+Get wikipdfizer script from this repository, or wait I make a release. Place this script in your PATH if you want the script to be easily invoked (for example, place it into /usr/local/bin directory)
 
 Now try:
-    $ wikipdf -h
+    $ wikipdfizer -h
 
 This will show you some help on command usage.
 
 ## Usage
-You may use wikipdf in several ways. It can use STDIN, STDOUT, or input file and output file. For example:
+You may use wikipdfizer in several ways. It can use STDIN, STDOUT, or input file and output file. For example:
 
-    $ wikidoc a_wiki_file.wiki -o pdf_file.pdf
+    $ wikipdfizer a_wiki_file.wiki -o pdf_file.pdf
 
 This way, "a_wiki_file.wiki" will be parsed and "pdf_file.pdf" will be yield.
 
 To use STDIN, just omit "input file":
 
-    $ echo -e ":title Test\n=== Title ===\nHello you !\n" | wikipdf -o test.pdf
+    $ echo -e ":title Test\n=== Title ===\nHello you !\n" | wikipdfizer -o test.pdf
 
 This will create a little pdf with this "hello" basic test.
 
 Or nicer, use cat to generate on the fly a pdf:
-    $ cat | wikipdf -o test.pdf 
+    $ cat | wikipdfizer -o test.pdf 
     :title Test from command line
     
     = Usage =
@@ -53,7 +53,7 @@ Or nicer, use cat to generate on the fly a pdf:
     
     <code bash>
     #what we typed:
-    cat | wikidoc
+    cat | wikipdfizer
     </code>
     
     You can now press CTRL+D to generate what you've typed in shell :)
@@ -62,11 +62,11 @@ Let's take a look on test.pdf generated file.
 
 
 And now:
-    $ wikidoc test.wiki | gz > pdf_compressed.pdf.gz
+    $ wikipdfizer test.wiki | gz > pdf_compressed.pdf.gz
 
 
 # Wiki Syntax
-You can use a pseudo Doku syntax. For now wikipdf recognizes this:
+You can use a pseudo Doku syntax. For now wikipdfizer recognizes this:
 
 Headings:
      = H1 = 
