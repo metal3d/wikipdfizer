@@ -127,6 +127,17 @@ function checkWikiSyntax(&$para) {
 
     $para = htmlentities($para);
 
+//headings
+preg_match_all('/(=+)(.+?)\1/', $para, $matches);
+foreach ($matches[0] as $c=>$found) {
+    $h = strlen($matches[1][$c]);
+    $para = str_replace(
+            $found, 
+            sprintf("<h%d>%s</h%d>", $h, $matches[2][$c], $h), 
+            $para);
+}
+unset($matches);
+
     $para = preg_replace('/\*\*(.*?)\*\*/','<b>\\1</b>', $para);
     $para = preg_replace('/\/\/(.*?)\/\//','<i>\\1</i>', $para);
     $para = preg_replace('/__(.*?)__/', '<u>\\1</u>', $para);
@@ -333,7 +344,7 @@ while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
     $tag = strtolower($matches[1]);
     $content = &$matches[2];
     if($tag == 'title') {
-        $meta.='<title>'.$content.'</title>'."\n";
+        $meta.='<title>'.htmlentities($content).'</title>'."\n";
     }
 
     //paper options
@@ -445,16 +456,6 @@ unset($matches);
 //set new page
 $file = preg_replace('/\n\-\-\-\n/',"\n<!--NewPage-->\n", $file);
 
-//headings
-preg_match_all('/(=+)(.*?)\1/', $file, $matches);
-foreach ($matches[0] as $c=>$found) {
-    $h = strlen($matches[1][$c]);
-    $file = str_replace(
-            $found, 
-            sprintf("<h%d>%s</h%d>", $h, $matches[2][$c], $h), 
-            $file);
-}
-unset($matches);
 
 //code
 preg_match_all('/\n<code(\s+.+?)*>(.*?)\n<\/code>/s', $file, $matches);
@@ -542,30 +543,12 @@ $tidy = new Tidy();
 $tidy->parseString($file,$options);
 $tidy->cleanRepair();
 
-$tidy = (string)$tidy;
-
+$tidy = mb_convert_encoding ((string) $tidy, 'ISO-8859-1',mb_detect_encoding((string) $tidy));
 
 //Pipes to 3 tools: iconv, html2ps, ps2pdf
-$ret = FALSE;
 $ret2 = FALSE;
-$iconv = proc_open('iconv -t "ISO885915"',array(
-    '0' => array("pipe", "r"),
-    '1' => array("pipe", "w"),
-), $pipes, "/tmp");
 
-if(is_resource($iconv)) {
-    fwrite($pipes[0], $tidy); //sending html content to iconv to standard convertion
-    fclose($pipes[0]);
-
-    $ret = stream_get_contents($pipes[1]);
-    fclose($pipes[1]);
-    proc_close($iconv);
-
-    //ok, convertion is done... 
-}
-unset($iconv);
-
-if($ret !== FALSE) {
+if($tidy) {
     //now, send it to html2ps
     $cb = basename($temp);
     $html2ps = proc_open("HTML2PSPATH=/tmp html2ps -f '$cb' -C hb -U -t ", array(
@@ -573,7 +556,7 @@ if($ret !== FALSE) {
         '1' => array('pipe', 'w')
     ), $pipes, '/tmp');
     if(is_resource($html2ps)) {
-        fwrite($pipes[0], $ret); //send iconv return to html2ps
+        fwrite($pipes[0], $tidy); //send iconv return to html2ps
         fclose($pipes[0]);
         $ret2 = stream_get_contents($pipes[1]);
         fclose($pipes[1]);
@@ -581,7 +564,7 @@ if($ret !== FALSE) {
     }
     unset ($html2ps);
 }
-unset($ret);
+
 
 if($ret2 !== FALSE) {
     //and now, to pdf...
@@ -595,7 +578,7 @@ if($ret2 !== FALSE) {
     ), $pipes, '/tmp');
 
     if(is_resource($ps2pdf)) {
-        fwrite($pipes[0], $ret2);
+        fwrite($pipes[0], mb_convert_encoding($ret2,'ISO-8859-15', mb_detect_encoding($ret2)) );
         fclose($pipes[0]);
         $pdf=stream_get_contents($pipes[1]);
         fclose($pipes[1]);
