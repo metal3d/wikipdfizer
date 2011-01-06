@@ -19,6 +19,7 @@ You need:
     * iconv
     * php-geshi package installed in include_dir (see php.ini)
     * php-tidy module
+    * php-mbstring module
 
 # How to use it ?
 
