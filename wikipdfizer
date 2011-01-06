@@ -26,6 +26,11 @@ if(!class_exists('Tidy')) {
     $err = TRUE;
 }
 
+if(!function_exists('mb_convert_encoding')) {
+    echo "You need php-mbstring module, please check your distribution packages.\n";
+    $err = TRUE;
+	
+}
 
 $ret = 0;
 passthru('which html2ps >/dev/null 2>&1', $ret);
