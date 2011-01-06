@@ -177,18 +177,26 @@ unset($matches);
 /**
 * Import wandering files into current document
 */
-function doImport (&$content) {
-    global $currentDir;
+$imported = array();
+function doImport (&$content, $dir=null) {
+    global $currentDir, $imported;
+    if (is_null($dir)) $dir=$currentDir;
+
     preg_match_all('/\n=>(.*?)\n/', $content, $matches);
     foreach($matches[0] as $c=>$found) {
         $name = $matches[1][$c];
-        $f = realpath($currentDir.'/'.$name);
-        $ddir = dirname(realpath($currentDir.'/'.$name));
-        $ct = file_get_contents($f);
+        $f = realpath($dir.'/'.$name);
+	//do not import twice...
+	if(in_array($f,$imported)) continue;
+	$imported[] = $f;	
 
+        $ddir = dirname(realpath($dir.'/'.$name));
+        $ct = file_get_contents($f);
         //replace images paths if
         $ct = preg_replace('/\{\{([^(http)|\/].*?)\}\}/','{{'.$ddir.'/\\1}}', $ct);
         $content = str_replace($found,"\n".$ct."\n",$content);
+	
+	doImport($content, $ddir);
     }
 }
 
