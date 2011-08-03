@@ -138,7 +138,7 @@ foreach ($matches[0] as $c=>$found) {
     $h = strlen($matches[1][$c]);
     $para = str_replace(
             $found, 
-            sprintf("<h%d>%s</h%d>", $h, $matches[2][$c], $h), 
+            sprintf("<h%d>%s</h%d>", $h, trim($matches[2][$c]), $h), 
             $para);
 }
 unset($matches);
@@ -418,7 +418,7 @@ while (preg_match('/\:([^ ]+) (.*)/i', $lines[0], $matches)) {
 
     //Table of content
     elseif($tag=='toctitle'){
-        $html2psoption['toc']['heading'] = '<h1>'.utf8_decode($content).'</h1>';
+        $html2psoption['toc']['heading'] = '<h1>'.$content.'</h1>';
     }
 
 
@@ -556,7 +556,7 @@ $tidy = new Tidy();
 $tidy->parseString($file,$options);
 $tidy->cleanRepair();
 
-$tidy = mb_convert_encoding ((string) $tidy, 'ISO-8859-1',mb_detect_encoding((string) $tidy));
+$tidy = mb_convert_encoding ((string) $tidy, 'ISO-8859-15',mb_detect_encoding((string) $tidy)) or (string) $tidy;
 
 //Pipes to 3 tools: iconv, html2ps, ps2pdf
 $ret2 = FALSE;
@@ -564,7 +564,7 @@ $ret2 = FALSE;
 if($tidy) {
     //now, send it to html2ps
     $cb = basename($temp);
-    $html2ps = proc_open("HTML2PSPATH=/tmp html2ps -f '$cb' -C hb -U -t ", array(
+    $html2ps = proc_open("HTML2PSPATH=/tmp html2ps -e ISO-8859-1 -f '$cb' -C hb -U -t ", array(
         '0' => array('pipe', 'r'),
         '1' => array('pipe', 'w')
     ), $pipes, '/tmp');
@@ -591,7 +591,7 @@ if($ret2 !== FALSE) {
     ), $pipes, '/tmp');
 
     if(is_resource($ps2pdf)) {
-        fwrite($pipes[0], mb_convert_encoding($ret2,'ISO-8859-15', mb_detect_encoding($ret2)) );
+        fwrite($pipes[0], mb_convert_encoding($ret2,'ISO-8859-15', mb_detect_encoding($ret2)) );      
         fclose($pipes[0]);
         $pdf=stream_get_contents($pipes[1]);
         fclose($pipes[1]);
@@ -599,9 +599,13 @@ if($ret2 !== FALSE) {
     }
 }
 
+//correction on index - TODO
+//$pdf = preg_replace('/(\/Title\([^(\\\240)]*)((\\\240)+).*/','\\1  ',$pdf);
+
 //generate output
 if($outfile) {
     file_put_contents($outfile, $pdf);
+    file_put_contents(preg_replace('/.pdf$/', '.ps', $outfile), $ret2);
 }
 else {
     print $pdf;
@@ -612,3 +616,4 @@ else {
 foreach ($images as $img) {
     @unlink($img);
 }
+
